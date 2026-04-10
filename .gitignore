@@ -1,7 +1,19 @@
-venv
-./venv
-models
-dataset/
-checkpoints
+# Python
 __pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+.venv/
 
+# Environment variables
+.env
+
+# IDEs / Editors
+.vscode/
+.idea/
+
+# Project specific
+dataset/
+checkpoints/
