@@ -76,6 +76,15 @@ python train.py
 
 The script trains for a default 15 epochs, saving model checkpoints like `model_epoch_1.pth` iteratively inside the `checkpoints/` directory.
 
+### 4. Generating Captions (Inference)
+Once the model is trained, you can use the `inference.py` script to generate a caption for any new image.
+
+```bash
+python inference.py --image path/to/your/image.jpg --checkpoint checkpoints/model_epoch_15.pth --vocab dataset/Flickr8K/vocab.pth
+```
+Optional arguments:
+- `--max_length`: Maximum number of words for the generated caption (default: 20).
+
 ## Features
 - **GPU Acceleration support:** Will execute using CUDA out of the box if available. 
 - **Vocabulary Extraction:** Generates an indexable mapping dropping rare words to limit dimension sizes.
