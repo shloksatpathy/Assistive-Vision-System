@@ -1,4 +1,5 @@
 import os
+import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -9,13 +10,14 @@ from models.image_caption_model import ImageCaptioningModel
 from preprocessing.vocabulary import Vocabulary, build_and_save_vocab
 from preprocessing.data_loader import get_dataloader
 
-def train():
+def train(train_cnn=False):
     # 1. Hyperparameters
     embed_size = 256
     hidden_size = 512
     num_layers = 1
-    learning_rate = 3e-4
-    num_epochs = 15
+    # Use a lower learning rate if we are fine-tuning the CNN
+    learning_rate = 1e-4 if train_cnn else 3e-4
+    num_epochs = 25
     batch_size = 32
     
     # 2. Paths
@@ -65,13 +67,13 @@ def train():
     
     # 6. Initialize Model, Loss, Optimizer
     print("Initializing Model...")
-    # train_cnn=False means we freeze the ResNet-50 backbone. We only train the projection layer and the LSTM.
+    # train_cnn determines if we freeze the ResNet-50 backbone or fine-tune its layers.
     model = ImageCaptioningModel(
         embed_size=embed_size,
         hidden_size=hidden_size,
         vocab_size=vocab_size,
         num_layers=num_layers,
-        train_cnn=False 
+        train_cnn=train_cnn 
     ).to(device)
     
     # We ignore the padding index when calculating loss
@@ -82,6 +84,11 @@ def train():
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()), 
         lr=learning_rate
+    )
+    
+    # Learning rate scheduler
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.5, patience=2
     )
     
     # 7. Training Loop
@@ -126,6 +133,9 @@ def train():
         avg_loss = epoch_loss / len(dataloader)
         print(f"Epoch [{epoch+1}/{num_epochs}] completed. Average Loss: {avg_loss:.4f}")
         
+        # Adjust learning rate based on average loss
+        scheduler.step(avg_loss)
+        
         # Save checkpoint
         checkpoint_path = CHECKPOINT_DIR / f"model_epoch_{epoch+1}.pth"
         torch.save({
@@ -141,4 +151,8 @@ def train():
         print(f"Checkpoint saved to {checkpoint_path}")
 
 if __name__ == "__main__":
-    train()
+    parser = argparse.ArgumentParser(description="Train the Image Captioning model.")
+    parser.add_argument("--fine_tune", action="store_true", help="Enable fine-tuning of the CNN backbone")
+    args = parser.parse_args()
+    
+    train(train_cnn=args.fine_tune)

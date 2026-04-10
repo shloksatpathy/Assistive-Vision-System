@@ -32,7 +32,7 @@ def load_model(checkpoint_path, vocab_size, device):
     
     return model
 
-def generate_caption(image_path, model, vocab, device, max_length=20):
+def generate_caption(image_path, model, vocab, device, max_length=20, beam_size=3):
     """
     Generates a caption for a given image.
     """
@@ -47,7 +47,7 @@ def generate_caption(image_path, model, vocab, device, max_length=20):
     image_tensor = transform(image).unsqueeze(0).to(device)
     
     # Generate indices
-    predicted_indices = model.generate_caption(image_tensor, vocab, max_length)
+    predicted_indices = model.generate_caption(image_tensor, vocab, max_length, beam_size=beam_size)
     
     # Convert indices to words
     words = []
@@ -67,6 +67,7 @@ def main():
     parser.add_argument("--checkpoint", type=str, required=True, help="Path to the model checkpoint (.pth).")
     parser.add_argument("--vocab", type=str, required=True, help="Path to the vocabulary file (.pth).")
     parser.add_argument("--max_length", type=int, default=20, help="Maximum length of the generated caption.")
+    parser.add_argument("--beam_size", type=int, default=3, help="Beam size for beam search. Set to 1 for greedy decoding.")
     args = parser.parse_args()
 
     # Device configuration
@@ -96,8 +97,8 @@ def main():
          print(f"Error: Image file not found at {image_path}")
          return
          
-    print(f"\nGenerating caption for {image_path.name}...")
-    caption = generate_caption(image_path, model, vocab, device, max_length=args.max_length)
+    print(f"\nGenerating caption for {image_path.name} (Beam Size: {args.beam_size})...")
+    caption = generate_caption(image_path, model, vocab, device, max_length=args.max_length, beam_size=args.beam_size)
     
     if caption is not None:
         print(f"\nPredicted Caption: {caption}\n")
