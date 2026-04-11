@@ -20,7 +20,7 @@ def load_captions(file_path):
         return captions_dict
 
     with open(file_path, 'r', encoding='utf-8') as f:
-        reader = csv.reader(f, delimiter='|')
+        reader = csv.reader(f, delimiter=',')
         # Skip the header
         header = next(reader, None)
         
@@ -35,7 +35,7 @@ def load_captions(file_path):
 if __name__ == "__main__":
     # Example usage:
     # Assumes the script is run from the workspace root where the dataset/ folder is relative to it
-    captions_path = os.path.join(os.path.dirname(__file__), "dataset", "Flickr8K", "captions.txt")
+    captions_path = os.path.join(os.path.dirname(__file__), "dataset", "Flickr30K", "captions.txt")
     
     print(f"Loading captions from {captions_path}...")
     captions = load_captions(captions_path)
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         for i, cap in enumerate(captions[first_image]):
             print(f"  {i}: {cap}")
             
-    output_path = os.path.join(os.path.dirname(__file__), "dataset", "Flickr8K", "clean_captions.txt")
+    output_path = os.path.join(os.path.dirname(__file__), "dataset", "Flickr30K", "clean_captions.txt")
     print(f"\nSaving clean captions to {output_path}...")
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(captions, f, indent=4)
