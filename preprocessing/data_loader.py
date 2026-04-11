@@ -107,9 +107,9 @@ def get_dataloader(tensors_dir, captions_file=None, vocab=None, batch_size=32, s
 
 if __name__ == "__main__":
     BASE_DIR = Path(__file__).resolve().parent.parent 
-    TENSORS_DIR = BASE_DIR / "dataset" / "Flickr8K" / "preprocessed_tensors"
-    CAPTIONS_FILE = BASE_DIR / "dataset" / "Flickr8K" / "clean_captions.txt"
-    VOCAB_FILE = BASE_DIR / "dataset" / "Flickr8K" / "vocab.pth"
+    TENSORS_DIR = BASE_DIR / "dataset" / "Flickr30K" / "preprocessed_tensors"
+    CAPTIONS_FILE = BASE_DIR / "dataset" / "Flickr30K" / "clean_captions.txt"
+    VOCAB_FILE = BASE_DIR / "dataset" / "Flickr30K" / "vocab.pth"
     
     print(f"Tensors Directory: {TENSORS_DIR}")
     
