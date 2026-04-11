@@ -16,7 +16,7 @@ The system utilizes a dual-model approach for scene understanding:
 Assistive Vision System/
 │
 ├── dataset/                    # Data directory (Flickr8K default)
-│   └── Flickr8K/
+│   └── Flickr30K/
 │       ├── images/             # Raw image files (e.g., .jpg)
 │       └── captions.txt        # Raw pipe-separated captions
 │
