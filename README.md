@@ -15,7 +15,7 @@ The system utilizes a dual-model approach for scene understanding:
 ```
 Assistive Vision System/
 │
-├── dataset/                    # Data directory (Flickr8K default)
+├── dataset/                    # Data directory (Flickr30K default)
 │   └── Flickr30K/
 │       ├── images/             # Raw image files (e.g., .jpg)
 │       └── captions.txt        # Raw pipe-separated captions
@@ -52,9 +52,9 @@ Assistive Vision System/
    - `tqdm`
    - `ultralytics` (for YOLOv8 integration)
 
-3. **Dataset (Flickr8K):**
-   - Download the Flickr8K dataset images and place them inside `dataset/Flickr8K/images/`.
-   - Download the corresponding `captions.txt` and place it at `dataset/Flickr8K/captions.txt`.
+3. **Dataset (Flickr30K):**
+   - Download the Flickr30K dataset images and place them inside `dataset/Flickr30K/images/`.
+   - Download the corresponding `captions.txt` and place it at `dataset/Flickr30K/captions.txt`.
 
 ## Getting Started
 
@@ -63,7 +63,7 @@ Raw captions contain metadata (image names, caption number) which are pipe-separ
 ```bash
 python load_captions.py
 ```
-This generates `clean_captions.txt` (in JSON format) inside the `dataset/Flickr8K/` output folder.
+This generates `clean_captions.txt` (in JSON format) inside the `dataset/Flickr30K/` output folder.
 
 ### 2. Preprocess the Images
 The dataset requires image normalization and resizing before they are fed into the model. Converting all images beforehand to `.pt` files reduces data-loading overhead heavily during training.
@@ -83,7 +83,7 @@ The script trains for a default 15 epochs, saving model checkpoints like `model_
 
 ### 4. Generating Captions (Inference)
 ```bash
-python inference.py --image path/to/your/image.jpg --checkpoint checkpoints/model_epoch_15.pth --vocab dataset/Flickr8K/vocab.pth
+python inference.py --image path/to/your/image.jpg --checkpoint checkpoints/model_epoch_15.pth --vocab dataset/Flickr30K/vocab.pth
 ```
 Optional arguments:
 - `--detect_objects`: Enable YOLOv8-based validation and optimization (recommended).
