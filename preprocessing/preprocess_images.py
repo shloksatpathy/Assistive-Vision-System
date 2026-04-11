@@ -83,8 +83,8 @@ if __name__ == "__main__":
     # Define paths
     # Resolves to f:\Assistive Vision System
     BASE_DIR = Path(__file__).resolve().parent.parent 
-    IMAGES_DIR = BASE_DIR / "dataset" / "Flickr8K" / "images"
-    PREPROCESSED_DIR = BASE_DIR / "dataset" / "Flickr8K" / "preprocessed_tensors"
+    IMAGES_DIR = BASE_DIR / "dataset" / "Flickr30K" / "images"
+    PREPROCESSED_DIR = BASE_DIR / "dataset" / "Flickr30K" / "preprocessed_tensors"
     
     print(f"Image directory set to: {IMAGES_DIR}")
     

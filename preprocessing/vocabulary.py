@@ -102,8 +102,8 @@ if __name__ == "__main__":
     from pathlib import Path
     
     BASE_DIR = Path(__file__).resolve().parent.parent 
-    CAPTIONS_FILE = BASE_DIR / "dataset" / "Flickr8K" / "clean_captions.txt"
-    VOCAB_FILE = BASE_DIR / "dataset" / "Flickr8K" / "vocab.pth"
+    CAPTIONS_FILE = BASE_DIR / "dataset" / "Flickr30K" / "clean_captions.txt"
+    VOCAB_FILE = BASE_DIR / "dataset" / "Flickr30K" / "vocab.pth"
     
     if CAPTIONS_FILE.exists():
         build_and_save_vocab(CAPTIONS_FILE, VOCAB_FILE)
