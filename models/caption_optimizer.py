@@ -241,9 +241,12 @@ class CaptionOptimizer:
 
     def refine_caption(self, caption, detected_objects):
         """
-        Post-processes a caption to remove hallucinated entities and actions
-        that are not supported by the YOLO detections. Falls back to 
-        object-grounded descriptions when the caption is unreliable.
+        Refines a caption based on alignment with YOLO-detected objects.
+        Uses a confidence-based approach:
+        - If alignment is good (≥50%), trust the VLM caption as-is.
+        - If YOLO detected many objects but alignment is low, trust the VLM
+          (YOLO may be unreliable in complex scenes).
+        - Otherwise, fall back to an object-grounded description.
         
         Args:
             caption (str): The generated caption text.
@@ -252,29 +255,23 @@ class CaptionOptimizer:
         Returns:
             str: The refined caption.
         """
-        detected_classes = self._get_detected_class_set(detected_objects)
+        detected_classes = list(self._get_detected_class_set(detected_objects))
         caption = caption.lower()
 
-        # Remove hallucinated humans if YOLO didn't detect any person
-        human_words = ["man", "woman", "person"]
-        if any(word in caption for word in human_words):
-            if "person" not in detected_classes:
-                for word in human_words:
-                    caption = caption.replace(word, "")
+        # Count how many YOLO objects appear in the caption
+        matches = sum(1 for obj in detected_classes if obj in caption)
 
-        # Remove hallucinated action words that the model tends to fabricate
-        action_words = ["sleeping", "jumping", "running"]
-        for word in action_words:
-            caption = caption.replace(word, "")
+        # Confidence ratio
+        alignment = matches / max(len(detected_classes), 1)
 
-        # Clean up extra whitespace left by removals
-        caption = " ".join(caption.split())
+        # If ≥50% of detected objects are mentioned → caption is consistent
+        if alignment >= 0.5:
+            return caption
 
-        # Strong object grounding fallbacks
-        if "chair" in detected_classes:
-            return "A chair is placed inside a room."
+        # If YOLO detected many objects but alignment is low → trust BLIP over YOLO
+        if len(detected_classes) > 2 and alignment < 0.4:
+            return caption
 
-        if len(detected_classes) > 0:
-            return "Scene contains: " + ", ".join(sorted(detected_classes))
+        # Otherwise, fall back to object-grounded description
+        return "Scene contains: " + ", ".join(sorted(detected_classes))
 
-        return caption
