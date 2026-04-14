@@ -11,7 +11,7 @@ class YoloDetector:
     A wrapper class for the YOLOv8 object detection model.
     By default, it uses the YOLOv8 nano model (yolov8n.pt).
     """
-    def __init__(self, model_name="yolov8n.pt", device=None):
+    def __init__(self, model_name="yolov8n.pt", device="cuda"):
         if YOLO is None:
             raise ImportError("Cannot initialize YoloDetector because ultralytics is not installed.")
             
