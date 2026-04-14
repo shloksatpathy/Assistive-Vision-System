@@ -1,109 +1,133 @@
 # Assistive Vision System
 
-This project is an **Image Captioning System** built using PyTorch. It aims to act as an assistive vision tool by automatically generating descriptive captions for images. The model utilizes a CNN (ResNet-50) architecture as an encoder to extract image features and an LSTM network as a decoder to generate sequential text captions.
+An **Assistive Vision System** that generates rich, accurate image descriptions by combining a **Vision-Language Model (BLIP)** for caption generation with **YOLOv8** for object detection and grounding. The YOLO detections validate and refine the VLM's output, reducing hallucinations and improving caption reliability.
 
-The system utilizes a dual-model approach for scene understanding:
-- **Image Captioning (CNN-LSTM):**
-  - **Encoder (CNN):** A pre-trained ResNet-50 model extracts fixed-size feature vectors from images. Only the final projection layer is fine-tuned.
-  - **Decoder (LSTM):** An LSTM-based RNN generates sequential text captions word-by-word, conditioned on CNN features and previous tokens.
-- **Object Detection (YOLOv8):**
-  - Uses a pre-trained **YOLOv8** model (yolov8n) to identify and locate specific objects in the image.
-  - This acts as a "ground truth" validator to cross-reference and refine the generated captions, reducing hallucinations.
+## Architecture
+
+The system uses a dual-model approach for scene understanding:
+
+- **Caption Generation (VLM — BLIP):**
+  - Uses a pre-trained **BLIP** model (`Salesforce/blip-image-captioning-large`) to generate natural language captions directly from images.
+  - No custom training required — the model is loaded from Hugging Face and runs inference out of the box.
+
+- **Object Detection & Grounding (YOLOv8):**
+  - Uses a pre-trained **YOLOv8** nano model (`yolov8n.pt`) to detect and locate objects in the scene.
+  - Acts as a "ground truth" validator: detected objects are cross-referenced against the generated caption to catch hallucinations and improve accuracy.
+
+- **Caption Optimizer:**
+  - Scores caption candidates against YOLO detections using **synonym-aware matching** (e.g., YOLO's `"person"` matches `"man"`, `"woman"`, `"boy"` in captions).
+  - Refines the final caption by removing hallucinated entities not supported by object detection.
+
+```
+Input Image
+    │
+    ├──► BLIP (VLM) ──► Caption: "a dog playing with a ball in the park"
+    │
+    └──► YOLOv8 ──► Detected: ["dog", "sports ball", "person"]
+              │
+              ▼
+        CaptionOptimizer
+        ├─ Validate (match caption words to detections)
+        ├─ Refine (remove hallucinations)
+        └─ Object-grounded final output
+```
 
 ## Project Structure
 
 ```
 Assistive Vision System/
 │
-├── dataset/                    # Data directory (Flickr30K default)
-│   └── Flickr30K/
-│       ├── images/             # Raw image files (e.g., .jpg)
-│       └── captions.txt        # Raw pipe-separated captions
+├── models/                        # Model definitions & logic
+│   ├── vlm.py                     # BLIP Vision-Language Model wrapper
+│   ├── yolo_detector.py           # YOLOv8 object detection wrapper
+│   ├── caption_optimizer.py       # Caption scoring, validation & refinement
+│   ├── cnn_encoder.py             # (Legacy) ResNet-50 feature extractor
+│   ├── lstm_decoder.py            # (Legacy) LSTM caption decoder
+│   └── image_caption_model.py     # (Legacy) CNN-LSTM wrapper
 │
-├── preprocessing/              # Data parsing and transformation
-│   ├── preprocess_images.py    # Resizes (244x244), normalizes & saves image tensors
-│   ├── vocabulary.py           # Builds mapping of tokens to numerical indices
-│   └── data_loader.py          # PyTorch dataset & data loader implementation
+├── preprocessing/                 # (Legacy) Data preprocessing
+│   ├── preprocess_images.py       # Image transforms & tensor conversion
+│   ├── vocabulary.py              # Token-to-index vocabulary builder
+│   └── data_loader.py             # PyTorch dataset & dataloader
 │
-├── models/                     # Neural network definitions & logic
-│   ├── cnn_encoder.py          # ResNet-50 feature extractor
-│   ├── lstm_decoder.py         # LSTM caption generation model
-│   ├── image_caption_model.py  # End-to-end Encoder-Decoder wrapper
-│   ├── yolo_detector.py        # YOLOv8 object detection wrapper
-│   └── caption_optimizer.py    # Logic for re-ranking and refining captions
-│
-├── checkpoints/                # Saved model weights during training
-│
-├── load_captions.py            # Parses raw captions text into clean JSON structure
-└── train.py                    # Main training loop for the Image Captioning Model
+├── inference.py                   # Main entry point — VLM + YOLO inference
+├── train.py                       # (Legacy) CNN-LSTM training script
+├── load_captions.py               # (Legacy) Caption parser
+├── requirements.txt               # Python dependencies
+├── LICENSE                        # MIT License
+└── README.md
 ```
+
+> **Note:** Files marked **(Legacy)** are from the original CNN-LSTM pipeline. They are kept for reference but are no longer part of the active inference pipeline.
 
 ## Setup and Requirements
 
-1. **Environment setup:** Ensure you have Python 3.8+ installed. It's recommended to work within a virtual environment.
+1. **Environment setup:**
    ```bash
    python -m venv venv
-   source venv/Scripts/activate  # On Windows
+   venv\Scripts\activate  # On Windows
    ```
 
-2. **Dependencies:** Make sure you have the following essential packages installed (via `pip`):
-   - `torch`, `torchvision`, `torchaudio`
-   - `Pillow`
-   - `tqdm`
-   - `ultralytics` (for YOLOv8 integration)
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+   Required packages: `torch`, `torchvision`, `Pillow`, `ultralytics`, `transformers`
 
-3. **Dataset (Flickr30K):**
-   - Download the Flickr30K dataset images and place them inside `dataset/Flickr30K/images/`.
-   - Download the corresponding `captions.txt` and place it at `dataset/Flickr30K/captions.txt`.
+3. **First run:** The BLIP model weights (~1 GB) and YOLOv8 weights (~6 MB) are **automatically downloaded** on the first run via Hugging Face and Ultralytics respectively.
 
-## Getting Started
+## Usage
 
-### 1. Process the Captions
-Raw captions contain metadata (image names, caption number) which are pipe-separated (`|`). Run the following script to create a structured mapping.
+### Basic Caption Generation (VLM only)
 ```bash
-python load_captions.py
-```
-This generates `clean_captions.txt` (in JSON format) inside the `dataset/Flickr30K/` output folder.
-
-### 2. Preprocess the Images
-The dataset requires image normalization and resizing before they are fed into the model. Converting all images beforehand to `.pt` files reduces data-loading overhead heavily during training.
-```bash
-python preprocessing/preprocess_images.py
-```
-*Note: This creates a `preprocessed_tensors/` directory.*
-
-### 3. Training the Model
-With the data ready, you can start training. The `train.py` script automatically handles loading the dataset, building the vocabulary (if unavailable as `vocab.pth`), initializing the Model + Optimizer + Loss algorithm (CrossEntropy).
-
-```bash
-python train.py
+python inference.py --image path/to/your/image.jpg
 ```
 
-The script trains for a default 15 epochs, saving model checkpoints like `model_epoch_1.pth` iteratively inside the `checkpoints/` directory.
-
-### 4. Generating Captions (Inference)
+### Caption with YOLO Object Grounding (recommended)
 ```bash
-python inference.py --image path/to/your/image.jpg --checkpoint checkpoints/model_epoch_15.pth --vocab dataset/Flickr30K/vocab.pth
+python inference.py --image path/to/your/image.jpg --detect_objects
 ```
-Optional arguments:
-- `--detect_objects`: Enable YOLOv8-based validation and optimization (recommended).
-- `--beam_size`: Search width for the language model (default: 5).
-- `--top_k`: Number of candidates to consider for re-ranking (default: 5).
-- `--max_length`: Maximum number of words for the generated caption (default: 20).
 
-### 5. Caption Optimization & Validation
-When `--detect_objects` is enabled:
-1. **Detections:** YOLO identifies objects in the scene.
-2. **Candidates:** Beam search generates multiple possible captions.
-3. **Re-ranking:** Captions are re-ranked based on how well they align with detected objects.
-4. **Refinement:** Hallucinated humans or actions not supported by YOLO are removed.
-5. **Report:** A validation report is printed showing object matches and confidence levels.
+### All Options
+| Argument | Default | Description |
+|---|---|---|
+| `--image` | (required) | Path to the input image |
+| `--detect_objects` | `false` | Enable YOLO-based validation and refinement |
+| `--max_length` | `50` | Maximum caption length (tokens) |
+| `--num_beams` | `5` | Beam search width for VLM |
+| `--top_k` | `5` | Number of caption candidates for re-ranking |
+
+### Example Output (with `--detect_objects`)
+```
+===========================================================
+  YOLO Object Detection
+===========================================================
+  Detected: 1x dog, 1x person, 1x frisbee
+
+===========================================================
+  VLM Caption Candidates
+===========================================================
+  [1] ★ "a man throwing a frisbee to a dog"
+       (alignment: 1.00)
+  [2]   "a dog playing with a ball in the park"
+       (alignment: 0.33)
+
+===========================================================
+  Validation Report
+===========================================================
+  ✓ person → matched "man"
+  ✓ dog → matched "dog"
+  ✓ frisbee → matched "frisbee"
+  Caption Confidence: HIGH (3/3 objects matched)
+
+===========================================================
+  Final Caption: a man throwing a frisbee to a dog
+===========================================================
+```
 
 ## Features
-- **Intelligent Validation:** Uses YOLOv8 to cross-verify generated captions and reduce hallucinated entities.
-- **Synonym-Aware Matching:** The optimizer understands that "person" in YOLO maps to "man", "woman", "boy", etc. in captions.
-- **Beam Search Re-ranking:** Picks the candidate that best balances language fluency and visual accuracy.
-- **Automated Refinement:** Strips unverified actions or fallback to object-grounded descriptions (e.g., "Scene contains: ...") for low-confidence outputs.
-- **GPU Acceleration support:** Executes using CUDA out of the box if available. 
-- **Vocabulary Extraction:** Generates an indexable mapping dropping rare words to limit dimension sizes.
-- **Gradient Clipping:** Prevents the exploding gradient problem in LSTM layers.
+- **Pre-trained VLM (BLIP):** No training required — generates high-quality captions out of the box.
+- **YOLO Object Grounding:** Cross-validates captions against detected objects for reliability.
+- **Synonym-Aware Matching:** Maps YOLO class names to natural language variants (person → man/woman/boy/girl).
+- **Hallucination Removal:** Strips fabricated entities and actions not confirmed by object detection.
+- **GPU Acceleration:** Uses CUDA automatically when available.
