@@ -37,28 +37,17 @@ Input Image
 ```
 Assistive Vision System/
 │
-├── models/                        # Model definitions & logic
-│   ├── vlm.py                     # BLIP Vision-Language Model wrapper
-│   ├── yolo_detector.py           # YOLOv8 object detection wrapper
-│   ├── caption_optimizer.py       # Caption scoring, validation & refinement
-│   ├── cnn_encoder.py             # (Legacy) ResNet-50 feature extractor
-│   ├── lstm_decoder.py            # (Legacy) LSTM caption decoder
-│   └── image_caption_model.py     # (Legacy) CNN-LSTM wrapper
+├── models/                        # Core logic and model wrappers
+│   ├── vlm.py                     # BLIP Vision-Language Model implementation
+│   ├── yolo_detector.py           # YOLOv8 detector bridge
+│   └── caption_optimizer.py       # Grounding logic and caption refinement
 │
-├── preprocessing/                 # (Legacy) Data preprocessing
-│   ├── preprocess_images.py       # Image transforms & tensor conversion
-│   ├── vocabulary.py              # Token-to-index vocabulary builder
-│   └── data_loader.py             # PyTorch dataset & dataloader
-│
-├── inference.py                   # Main entry point — VLM + YOLO inference
-├── train.py                       # (Legacy) CNN-LSTM training script
-├── load_captions.py               # (Legacy) Caption parser
-├── requirements.txt               # Python dependencies
-├── LICENSE                        # MIT License
+├── inference.py                   # Unified entrance for image analysis
+├── train.py                       # (Legacy) Training script for CNN-LSTM
+├── requirements.txt               # System dependencies
+├── LICENSE                        # Project license
 └── README.md
 ```
-
-> **Note:** Files marked **(Legacy)** are from the original CNN-LSTM pipeline. They are kept for reference but are no longer part of the active inference pipeline.
 
 ## Setup and Requirements
 
