@@ -30,21 +30,25 @@ class YoloDetector:
             
         print(f"YOLO detector successfully initialized on {self.device}.")
 
-    def detect_objects(self, image_path, conf_threshold=0.25):
+    def detect_objects(self, image_source, conf_threshold=0.25):
         """
         Runs object detection on the given image.
         
         Args:
-            image_path (str or Path): Path to the image file.
+            image_source (str, Path, numpy.ndarray, or PIL.Image.Image): The input image.
             conf_threshold (float): Minimum confidence threshold for detection.
             
         Returns:
             list of dict: A list of detected objects, each with 'class', 'confidence', and 'bbox'.
         """
-        image_path_str = str(image_path)
-        
+        # If it's a string or Path, convert to string. Otherwise, pass directly (YOLO natively handles arrays/PIL).
+        if isinstance(image_source, (str, Path)):
+            input_data = str(image_source)
+        else:
+            input_data = image_source
+            
         # Run inference
-        results = self.model(image_path_str, conf=conf_threshold, device=self.device, verbose=False)
+        results = self.model(input_data, conf=conf_threshold, device=self.device, verbose=False)
         
         detected_objects = []
         

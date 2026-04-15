@@ -51,24 +51,27 @@ class VLMCaptionGenerator:
         self.model.eval()
         print(f"BLIP model loaded successfully on {self.device}.")
 
-    def generate_caption(self, image_path, max_length=50, num_beams=4):
+    def generate_caption(self, image_or_path, max_length=50, num_beams=4):
         """
         Generates a caption for a single image.
 
         Args:
-            image_path (str or Path): Path to the image file.
+            image_or_path (str or Path or PIL.Image.Image): The image to process.
             max_length (int): Maximum number of tokens in the generated caption.
             num_beams (int): Number of beams for beam search decoding.
 
         Returns:
             str: The generated caption text.
         """
-        image_path = Path(image_path)
-        try:
-            image = Image.open(image_path).convert("RGB")
-        except Exception as e:
-            print(f"Error loading image '{image_path}': {e}")
-            return None
+        if isinstance(image_or_path, Image.Image):
+            image = image_or_path.convert("RGB")
+        else:
+            image_path = Path(image_or_path)
+            try:
+                image = Image.open(image_path).convert("RGB")
+            except Exception as e:
+                print(f"Error loading image '{image_path}': {e}")
+                return None
 
         # Process the image through the BLIP processor
         inputs = self.processor(images=image, return_tensors="pt").to(self.device)
@@ -85,12 +88,12 @@ class VLMCaptionGenerator:
         caption = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
         return caption
 
-    def generate_captions_multiple(self, image_path, max_length=50, num_beams=5, num_return=5):
+    def generate_captions_multiple(self, image_or_path, max_length=50, num_beams=5, num_return=5):
         """
         Generates multiple caption candidates for re-ranking.
 
         Args:
-            image_path (str or Path): Path to the image file.
+            image_or_path (str or Path or PIL.Image.Image): The image to process.
             max_length (int): Maximum token length per caption.
             num_beams (int): Number of beams for beam search.
             num_return (int): Number of caption sequences to return.
@@ -98,12 +101,15 @@ class VLMCaptionGenerator:
         Returns:
             list of str: Multiple caption candidates.
         """
-        image_path = Path(image_path)
-        try:
-            image = Image.open(image_path).convert("RGB")
-        except Exception as e:
-            print(f"Error loading image '{image_path}': {e}")
-            return []
+        if isinstance(image_or_path, Image.Image):
+            image = image_or_path.convert("RGB")
+        else:
+            image_path = Path(image_or_path)
+            try:
+                image = Image.open(image_path).convert("RGB")
+            except Exception as e:
+                print(f"Error loading image '{image_path}': {e}")
+                return []
 
         inputs = self.processor(images=image, return_tensors="pt").to(self.device)
 
