@@ -239,14 +239,20 @@ class CaptionOptimizer:
         
         return "\n".join(lines), confidence
 
+    def _extract_nouns(self, text):
+        """Helper function to extract meaningful words from a caption."""
+        stop_words = {
+            "a", "an", "the", "is", "are", "was", "were", "and", "or", "but", 
+            "in", "on", "at", "to", "with", "by", "of", "for", "it", "this", "that", "there", "some"
+        }
+        for p in ".,!?;:\"'-":
+            text = text.replace(p, " ")
+        words = text.lower().split()
+        return [w for w in words if w not in stop_words and len(w) > 1]
+
     def refine_caption(self, caption, detected_objects):
         """
         Refines a caption based on alignment with YOLO-detected objects.
-        Uses a confidence-based approach:
-        - If alignment is good (≥50%), trust the VLM caption as-is.
-        - If YOLO detected many objects but alignment is low, trust the VLM
-          (YOLO may be unreliable in complex scenes).
-        - Otherwise, fall back to an object-grounded description.
         
         Args:
             caption (str): The generated caption text.
@@ -255,23 +261,37 @@ class CaptionOptimizer:
         Returns:
             str: The refined caption.
         """
-        detected_classes = list(self._get_detected_class_set(detected_objects))
-        caption = caption.lower()
+        caption_objs = self._extract_nouns(caption)
+        yolo_objs = list(self._get_detected_class_set(detected_objects))
+        confidences = [obj["confidence"] for obj in detected_objects]
 
-        # Count how many YOLO objects appear in the caption
-        matches = sum(1 for obj in detected_classes if obj in caption)
+        # Agreement: Use synonym matching to accurately calculate intersection
+        matched_yolo_objs = set()
+        for y_obj in yolo_objs:
+            if self._get_synonyms(y_obj) & set(caption_objs):
+                matched_yolo_objs.add(y_obj)
+                
+        intersection = (set(caption_objs) & set(yolo_objs)) | matched_yolo_objs
+        agreement = len(intersection) / max(len(set(yolo_objs)), 1)
 
-        # Confidence ratio
-        alignment = matches / max(len(detected_classes), 1)
+        # YOLO confidence
+        avg_conf = sum(confidences) / max(len(confidences), 1)
 
-        # If ≥50% of detected objects are mentioned → caption is consistent
-        if alignment >= 0.5:
+        # 🧠 Decision
+
+        # Case 1: Strong agreement → trust caption
+        if agreement >= 0.5:
             return caption
 
-        # If YOLO detected many objects but alignment is low → trust BLIP over YOLO
-        if len(detected_classes) > 2 and alignment < 0.4:
+        # Case 2: Low YOLO confidence → trust caption
+        if avg_conf < 0.4:
             return caption
 
-        # Otherwise, fall back to object-grounded description
-        return "Scene contains: " + ", ".join(sorted(detected_classes))
+        # Case 3: High YOLO confidence + low agreement → trust detection
+        if avg_conf > 0.6 and agreement < 0.3:
+            return "Scene contains: " + ", ".join(set(yolo_objs))
+
+        # Case 4: Mixed → merge
+        merged = list(set(caption_objs) | set(yolo_objs))
+        return "Scene contains: " + ", ".join(merged)
 
