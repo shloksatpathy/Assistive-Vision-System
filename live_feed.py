@@ -39,33 +39,25 @@ def inference_thread(captioner, detector, optimizer):
             frame_rgb = cv2.cvtColor(frame_to_process, cv2.COLOR_BGR2RGB)
             pil_image = Image.fromarray(frame_rgb)
             
+            # 2. VLM Caption Generation (Single caption for faster live feed)
+            # Use a slightly lower beam_size to speed up live processing
+            caption = captioner.generate_caption(pil_image, num_beams=3)
+            
+            if not caption:
+                latest_caption = "Error generating caption."
+                latest_boxes = detected_objs if detected_objs else []
+                time.sleep(0.1)
+                continue
+                
             if not detected_objs:
-                # No objects, fallback to basic VLM caption
-                caption = captioner.generate_caption(pil_image)
-                latest_caption = caption if caption else "No objects, VLM failed."
+                # No objects detected to refine with
+                latest_caption = caption
                 latest_boxes = []
             else:
-                # 2. VLM Candidates Generation
-                captions = captioner.generate_captions_multiple(pil_image, num_return=3, num_beams=3)
-                
-                if captions:
-                    # 3. Validation & Refinement
-                    scored_results = []
-                    for cap in captions:
-                        words = cap.lower().split()
-                        alignment, details = optimizer.score_caption(words, detected_objs)
-                        scored_results.append((cap, alignment))
-                    
-                    # Sort primarily by alignment
-                    scored_results.sort(key=lambda x: x[1], reverse=True)
-                    best_caption = scored_results[0][0]
-                    
-                    # Apply refinement logic
-                    refined_caption = optimizer.refine_caption(best_caption, detected_objs)
-                    latest_caption = refined_caption
-                else:
-                    latest_caption = "Error generating caption."
-                    
+                # 3. Refinement / Optimization
+                # Refine the single generated caption using YOLO detections
+                refined_caption = optimizer.refine_caption(caption, detected_objs)
+                latest_caption = refined_caption
                 latest_boxes = detected_objs
                 
         except Exception as e:
