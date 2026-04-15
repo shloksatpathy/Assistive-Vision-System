@@ -61,7 +61,7 @@ Assistive Vision System/
    ```bash
    pip install -r requirements.txt
    ```
-   Required packages: `torch`, `torchvision`, `Pillow`, `ultralytics`, `transformers`
+   Required packages: `torch`, `torchvision`, `Pillow`, `ultralytics`, `transformers`, `opencv-python`
 
 3. **First run:** The BLIP model weights (~1 GB) and YOLOv8 weights (~6 MB) are **automatically downloaded** on the first run via Hugging Face and Ultralytics respectively.
 
@@ -76,6 +76,13 @@ python inference.py --image path/to/your/image.jpg
 ```bash
 python inference.py --image path/to/your/image.jpg --detect_objects
 ```
+
+### Real-Time Live Video Feed
+To run the system on your webcam in real-time, use the live feed script. This uses a multithreaded approach to keep the video smooth while the models process frames asynchronously.
+```bash
+python live_feed.py
+```
+*(Press 'q' in the video window to quit)*
 
 ### All Options
 | Argument | Default | Description |

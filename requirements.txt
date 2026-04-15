@@ -4,3 +4,5 @@ Pillow
 tqdm
 ultralytics
 transformers
+opencv-python
+
