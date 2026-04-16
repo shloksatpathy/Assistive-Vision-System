@@ -96,14 +96,19 @@ def main():
         
     print("Webcam started. Press 'q' to quit.")
     
+    # ── Fullscreen Window Setup ──
+    window_name = "Assistive Vision - Live Feed"
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    
     while True:
         ret, frame = cap.read()
         if not ret:
             print("Failed to grab frame.")
             break
             
-        # Update global frame for the inference thread
-        latest_frame = frame
+        # Update global frame for the inference thread (use original resolution)
+        latest_frame = frame.copy()
         
         # ── Draw Overlays ──
         
@@ -127,8 +132,8 @@ def main():
         cv2.putText(frame, latest_caption, (15, 30), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
                     
-        # Show video
-        cv2.imshow("Assistive Vision - Live Feed", frame)
+        # Show video (fullscreen window stretches frame to fit screen)
+        cv2.imshow(window_name, frame)
         
         # Exit condition
         if cv2.waitKey(1) & 0xFF == ord('q'):
